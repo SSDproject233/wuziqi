@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .wrap {
+            width: 450px;
+            height: 450px;
+            position: relative;
+        }
+
+        .board {
+            background-color: #e4c490;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>助理招聘-刘涛-笔试-五子棋</h1>
+    <button class="undoBtn">Z键 悔棋</button>
+    <button class="redoBtn">Y键 撤销悔棋</button>
+    <br>
+    <br>
+    <div class="wrap">
+        <canvas id="canvas" width="450" height="450" class="board"></canvas>
+        <div class="container board"></div>
+    </div>
+
+    <script src="DOM.js"></script>
+    <script src="canvas.js"></script>
+
+    <script>
+        // 获得父盒子（得到固定游戏区域）
+        const wrap = document.querySelector('.wrap')
+        // 获得画布对象
+        const canvas = document.getElementById("canvas")
+        const container = document.querySelector('.container')
+        // 棋盘参数
+        const ROWS = 15;
+        // 设置每个格子大小
+        const SIZE = wrap.offsetWidth / ROWS;
+        // 设置落子的间距（因为落子是在格子中间所以除以2）
+        const PADDING = SIZE / 2;
+        let board = [];
+        let currentPlayer = "black";
+        let history = [];
+        let lastMove = null;
+
+        // 初始化棋盘记录数据数组
+        function initBoard() {
+            for (let i = 0; i < ROWS; i++) {
+                board[i] = [];
+                for (let j = 0; j < ROWS; j++) {
+                    board[i][j] = "empty";
+                }
+            }
+        }
+
+        // 获胜检测
+        function checkWin() {
+            // 检查横行
+            for (let i = 0; i < ROWS; i++) {
+                for (let j = 0; j <= ROWS - 5; j++) {
+                    if (board[i][j] !== "empty" &&
+                        board[i][j] === board[i][j + 1] &&
+                        board[i][j] === board[i][j + 2] &&
+                        board[i][j] === board[i][j + 3] &&
+                        board[i][j] === board[i][j + 4]) {
+                        return board[i][j];
+                    }
+                }
+            }
+
+            // 检查竖行
+            for (let i = 0; i <= ROWS - 5; i++) {
+                for (let j = 0; j < ROWS; j++) {
+                    if (board[i][j] !== "empty" &&
+                        board[i][j] === board[i + 1][j] &&
+                        board[i][j] === board[i + 2][j] &&
+                        board[i][j] === board[i + 3][j] &&
+                        board[i][j] === board[i + 4][j]) {
+                        return board[i][j];
+                    }
+                }
+            }
+
+            // 检查斜线
+            for (let i = 0; i <= ROWS - 5; i++) {
+                for (let j = 0; j <= ROWS - 5; j++) {
+                    if (board[i][j] !== "empty" &&
+                        board[i][j] === board[i + 1][j + 1] &&
+                        board[i][j] === board[i + 2][j + 2] &&
+                        board[i][j] === board[i + 3][j + 3] &&
+                        board[i][j] === board[i + 4][j + 4]) {
+                        return board[i][j];
+                    }
+                }
+            }
+
+            // 检查反斜线
+            for (let i = 4; i < ROWS; i++) {
+                for (let j = 0; j <= ROWS - 5; j++) {
+                    if (board[i][j] !== "empty" &&
+                        board[i][j] === board[i - 1][j + 1] &&
+                        board[i][j] === board[i - 2][j + 2] &&
+                        board[i][j] === board[i - 3][j + 3] &&
+                        board[i][j] === board[i - 4][j + 4]) {
+                        return board[i][j];
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        // 悔棋
+        function undo() {
+            if (lastMove) {
+                return;
+            }
+
+            lastMove = history.pop();
+            board[lastMove.row][lastMove.col] = "empty";
+            undoRender()
+            togglePlayer();
+        }
+        // 撤销悔棋
+        function redo() {
+            if (lastMove) {
+                board[lastMove.row][lastMove.col] = lastMove.player
+                drawPiece(lastMove.row, lastMove.col, lastMove.player);
+                history.push(lastMove);
+                togglePlayer();
+                lastMove = null
+            }
+        }
+
+        // 悔棋后的重新渲染棋盘
+        function undoRender() {
+
+            drawBoard();
+            history.forEach(v => {
+                drawPiece(v.row, v.col, v.player);
+            })
+
+        }
+
+        // 落子
+        function placePiece(event) {
+            // 落子后把上一次能悔棋的记录清空
+            lastMove = null
+            let row = Math.floor((event.clientY - wrap.offsetTop) / SIZE);
+            let col = Math.floor((event.clientX - wrap.offsetLeft) / SIZE);
+
+            if (board[row][col] !== "empty") {
+                return;
+            }
+
+            board[row][col] = currentPlayer;
+            drawPiece(row, col, currentPlayer);
+
+            history.push({
+                player: currentPlayer,
+                row: row,
+                col: col
+            });
+
+            let winner = checkWin();
+            if (winner) {
+
+                setTimeout(function () {
+                    alert(`${winner} wins!`);
+                });
+                // 移除点击
+                canvas.removeEventListener("click", placePiece);
+                container.removeEventListener("click", placePiece);
+                return;
+            }
+
+            togglePlayer();
+        }
+
+        // 切换棋手
+        function togglePlayer() {
+            currentPlayer = currentPlayer === "black" ? "white" : "black";
+        }
+
+        // 监听按键
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "z" || event.key === "Z") {
+                undo();
+            } else if (event.key === "y" || event.key === "Y") {
+                redo();
+            }
+        });
+
+        // // 浏览器不支持canvas时，使用原生DOM元素代替 或者手动切换
+        let model = ''
+        if (!canvas.getContext) {
+            wrap.removeChild(canvas)
+            // 开始dom版
+            startDomGame(wrap)
+            model = 'domGame'
+        }
+        else {
+            wrap.removeChild(container)
+            startCanvasGame(wrap)
+            model = 'canvasGame'
+        }
+
+        document.querySelector('.undoBtn').addEventListener('click', () => {
+            undo()
+        })
+        document.querySelector('.redoBtn').addEventListener('click', () => {
+            redo()
+        })
+    </script>
+</body>
+
+</html>
