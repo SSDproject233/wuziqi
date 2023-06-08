@@ -54,77 +54,54 @@
 
         // 初始化棋盘记录数据数组
         function initBoard() {
-            for (let i = 0; i < ROWS; i++) {
-                board[i] = [];
-                for (let j = 0; j < ROWS; j++) {
-                    board[i][j] = "empty";
-                }
-            }
+            board = Array.from({ length: ROWS }, () => Array.from({ length: ROWS }, () => "empty"));
         }
 
         // 获胜检测
-        function checkWin() {
-            // 检查横行
-            for (let i = 0; i < ROWS; i++) {
-                for (let j = 0; j <= ROWS - 5; j++) {
-                    if (board[i][j] !== "empty" &&
-                        board[i][j] === board[i][j + 1] &&
-                        board[i][j] === board[i][j + 2] &&
-                        board[i][j] === board[i][j + 3] &&
-                        board[i][j] === board[i][j + 4]) {
-                        return board[i][j];
+        function checkWin(currentPlayer, row, col) {
+            // 水平 垂直 斜 反斜 四个方向
+            const direction = [
+                [1, 0],
+                [0, 1],
+                [1, 1],
+                [-1, 1]
+            ]
+            for (let i = 0; i < direction.length; i++) {
+                const [dx, dy] = direction[i]
+                let count = 1
+                // 往正方向遍历
+                for (let j = 1; j < 5; j++) {
+                    const r = row + j * dx;
+                    const c = col + j * dy;
+                    if (r < 0 || r >= ROWS || c < 0 || c >= ROWS || board[r][c] !== currentPlayer) {
+                        break;
                     }
+                    count++;
+                }
+
+                // 往反方向遍历
+                for (let j = 1; j < 5; j++) {
+                    const r = row - j * dx;
+                    const c = col - j * dy;
+                    if (r < 0 || r >= ROWS || c < 0 || c >= ROWS || board[r][c] !== currentPlayer) {
+                        break;
+                    }
+                    count++;
+                }
+
+                if (count >= 5) {
+                    return currentPlayer
                 }
             }
-
-            // 检查竖行
-            for (let i = 0; i <= ROWS - 5; i++) {
-                for (let j = 0; j < ROWS; j++) {
-                    if (board[i][j] !== "empty" &&
-                        board[i][j] === board[i + 1][j] &&
-                        board[i][j] === board[i + 2][j] &&
-                        board[i][j] === board[i + 3][j] &&
-                        board[i][j] === board[i + 4][j]) {
-                        return board[i][j];
-                    }
-                }
-            }
-
-            // 检查斜线
-            for (let i = 0; i <= ROWS - 5; i++) {
-                for (let j = 0; j <= ROWS - 5; j++) {
-                    if (board[i][j] !== "empty" &&
-                        board[i][j] === board[i + 1][j + 1] &&
-                        board[i][j] === board[i + 2][j + 2] &&
-                        board[i][j] === board[i + 3][j + 3] &&
-                        board[i][j] === board[i + 4][j + 4]) {
-                        return board[i][j];
-                    }
-                }
-            }
-
-            // 检查反斜线
-            for (let i = 4; i < ROWS; i++) {
-                for (let j = 0; j <= ROWS - 5; j++) {
-                    if (board[i][j] !== "empty" &&
-                        board[i][j] === board[i - 1][j + 1] &&
-                        board[i][j] === board[i - 2][j + 2] &&
-                        board[i][j] === board[i - 3][j + 3] &&
-                        board[i][j] === board[i - 4][j + 4]) {
-                        return board[i][j];
-                    }
-                }
-            }
-
-            return null;
+            return false
         }
+
 
         // 悔棋
         function undo() {
             if (lastMove) {
                 return;
             }
-
             lastMove = history.pop();
             board[lastMove.row][lastMove.col] = "empty";
             undoRender()
@@ -171,7 +148,7 @@
                 col: col
             });
 
-            let winner = checkWin();
+            let winner = checkWin(currentPlayer, row, col);
             if (winner) {
 
                 setTimeout(function () {
